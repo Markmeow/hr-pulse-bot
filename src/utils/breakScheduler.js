@@ -44,10 +44,12 @@ async function processDueBreaks(client) {
       const channel = await client.channels.fetch(r.channel_id).catch(() => null);
       if (channel?.isTextBased()) {
         const dur = r.duration_ms || 3600000;
+        const actLine = r.activity ? `\n> กิจกรรม: **${r.activity}**` : '';
         await channel.send({
           content:
             `🌸 <@${r.user_id}> ถึงเวลาพักแล้ว! **${r.break_time} น.** 🍵\n` +
-            `> พักถึง **${endTimeStr(now, dur)} น.** — แจ้งกลับด้วย \`/break return\``,
+            `> พักถึง **${endTimeStr(now, dur)} น.** — แจ้งกลับด้วย \`/break return\`` +
+            actLine,
         });
       }
     } catch (err) {

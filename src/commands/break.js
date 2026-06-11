@@ -4,13 +4,14 @@ const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js'
 const db = require('../database/db');
 
 const upsertBreak = db.prepare(`
-  INSERT INTO breaks (user_id, guild_id, channel_id, break_time, duration_ms, scheduled_at, date)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO breaks (user_id, guild_id, channel_id, break_time, duration_ms, scheduled_at, date, activity)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT (user_id, guild_id, date) DO UPDATE SET
     channel_id   = excluded.channel_id,
     break_time   = excluded.break_time,
     duration_ms  = excluded.duration_ms,
     scheduled_at = excluded.scheduled_at,
+    activity     = excluded.activity,
     started_at   = NULL,
     returned_at  = NULL,
     end_warned   = 0,
@@ -96,6 +97,22 @@ module.exports = {
             .setDescription('ระยะเวลาพัก เช่น 30m, 1h, 1h30m (ค่าเริ่มต้น: 1h)')
             .setRequired(false)
         )
+        .addStringOption((opt) =>
+          opt
+            .setName('activity')
+            .setDescription('จะพักทำอะไร?')
+            .setRequired(false)
+            .setMaxLength(60)
+            .addChoices(
+              { name: '🍜 กินข้าว',              value: '🍜 กินข้าว'              },
+              { name: '😴 งีบหลับ',              value: '😴 งีบหลับ'              },
+              { name: '☕ พักดื่มกาแฟ/ชา',       value: '☕ พักดื่มกาแฟ/ชา'       },
+              { name: '🚶 เดินเล่น/ออกกำลังกาย', value: '🚶 เดินเล่น/ออกกำลังกาย' },
+              { name: '🛁 อาบน้ำ',               value: '🛁 อาบน้ำ'               },
+              { name: '🛒 ไปซื้อของ',            value: '🛒 ไปซื้อของ'            },
+              { name: '📱 พักสายตา',             value: '📱 พักสายตา'             }
+            )
+        )
     )
     .addSubcommand((sub) =>
       sub.setName('status').setDescription('ตรวจสอบสถานะการพักของตัวเอง')
@@ -117,6 +134,7 @@ module.exports = {
     if (sub === 'set') {
       const timeStr = interaction.options.getString('time', true);
       const durStr = interaction.options.getString('duration');
+      const activity = interaction.options.getString('activity') ?? null;
       const parsed = parseBreakTime(timeStr);
 
       if ('error' in parsed) {
@@ -142,7 +160,14 @@ module.exports = {
       }
 
       const endTime = endTimeStr(parsed.timestamp, durationMs);
-      upsertBreak.run(userId, guildId, interaction.channelId, parsed.formatted, durationMs, parsed.timestamp, parsed.dateStr);
+      upsertBreak.run(userId, guildId, interaction.channelId, parsed.formatted, durationMs, parsed.timestamp, parsed.dateStr, activity);
+
+      const fields = [
+        { name: '「 ช่วงเวลาพัก 」', value: `**${parsed.formatted} — ${endTime} น.**`, inline: true },
+        { name: '「 ระยะเวลา 」', value: durationText(durationMs), inline: true },
+        { name: '「 สถานะ 」', value: '⏳ รอพัก', inline: true },
+      ];
+      if (activity) fields.push({ name: '「 กิจกรรม 」', value: activity, inline: true });
 
       await interaction.reply({
         embeds: [
@@ -150,11 +175,7 @@ module.exports = {
             .setColor(0xff79c6)
             .setAuthor({ name, iconURL: avatar })
             .setTitle('🌸 ตั้งเวลาพักแล้ว!')
-            .addFields(
-              { name: '「 ช่วงเวลาพัก 」', value: `**${parsed.formatted} — ${endTime} น.**`, inline: true },
-              { name: '「 ระยะเวลา 」', value: durationText(durationMs), inline: true },
-              { name: '「 สถานะ 」', value: '⏳ รอพัก', inline: true }
-            )
+            .addFields(...fields)
             .setFooter({ text: '✦ บอทจะแจ้งเตือนเมื่อถึงเวลาพัก และแจ้งอีกครั้ง 5 นาทีก่อนหมดเวลา ✦' })
             .setTimestamp(),
         ],
@@ -304,7 +325,8 @@ module.exports = {
       const fmt = (r) => {
         const dur = r.duration_ms || 3600000;
         const end = endTimeStr(r.scheduled_at, dur);
-        return `> <@${r.user_id}> — **${r.break_time}–${end} น.**`;
+        const act = r.activity ? ` · ${r.activity}` : '';
+        return `> <@${r.user_id}> — **${r.break_time}–${end} น.**${act}`;
       };
 
       const sections = [];
@@ -315,8 +337,9 @@ module.exports = {
           const end = endTimeStr(r.scheduled_at, dur);
           const elapsed = r.started_at ? Date.now() - r.started_at : 0;
           const endMs = r.started_at ? r.started_at + dur : 0;
+          const act = r.activity ? ` · ${r.activity}` : '';
           return (
-            `> <@${r.user_id}> — **${r.break_time}–${end} น.**\n` +
+            `> <@${r.user_id}> — **${r.break_time}–${end} น.**${act}\n` +
             `> ${progressBar(elapsed, dur)} ${timeRemaining(endMs)}`
           );
         });

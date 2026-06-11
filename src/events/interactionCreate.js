@@ -7,7 +7,7 @@ const db = require('../database/db');
 
 const checkRegistered = db.prepare('SELECT id FROM users WHERE discord_id = ? AND guild_id = ?');
 
-const OPEN_COMMANDS = new Set(['auth', 'help']);
+const OPEN_COMMANDS = new Set(['auth', 'help', 'event']);
 
 module.exports = {
   name: Events.InteractionCreate,

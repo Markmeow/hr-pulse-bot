@@ -21,6 +21,7 @@ db.exec(schema);
 const migrations = [
   'ALTER TABLE breaks ADD COLUMN duration_ms INTEGER DEFAULT 3600000',
   'ALTER TABLE breaks ADD COLUMN end_warned   INTEGER DEFAULT 0',
+  'ALTER TABLE breaks ADD COLUMN activity     TEXT',
 ];
 for (const sql of migrations) {
   try { db.exec(sql); } catch { }

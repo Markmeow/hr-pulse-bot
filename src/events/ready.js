@@ -3,6 +3,7 @@
 const { Events } = require('discord.js');
 const { startReminderScheduler } = require('../utils/reminderScheduler');
 const { startBreakScheduler } = require('../utils/breakScheduler');
+const { startEventScheduler } = require('../utils/eventScheduler');
 
 module.exports = {
   name: Events.ClientReady,
@@ -13,5 +14,6 @@ module.exports = {
 
     startReminderScheduler(client);
     startBreakScheduler(client);
+    startEventScheduler(client);
   },
 };

@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS breaks (
   started_at   INTEGER,
   returned_at  INTEGER,
   end_warned   INTEGER DEFAULT 0,
+  activity     TEXT,
   status       TEXT    NOT NULL DEFAULT 'scheduled',
   date         TEXT    NOT NULL,
   UNIQUE (user_id, guild_id, date)
@@ -65,3 +66,21 @@ CREATE INDEX IF NOT EXISTS idx_users_discord   ON users (discord_id, guild_id);
 CREATE INDEX IF NOT EXISTS idx_users_username  ON users (username, guild_id);
 CREATE INDEX IF NOT EXISTS idx_breaks_due      ON breaks (status, scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_breaks_today    ON breaks (guild_id, date);
+
+CREATE TABLE IF NOT EXISTS events (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  guild_id       TEXT    NOT NULL,
+  channel_id     TEXT    NOT NULL,
+  title          TEXT    NOT NULL,
+  description    TEXT    NOT NULL,
+  post_time      TEXT    NOT NULL,
+  ping_everyone  INTEGER NOT NULL DEFAULT 0,
+  ping_role_id   TEXT,
+  color          INTEGER NOT NULL DEFAULT 12417529,
+  active         INTEGER NOT NULL DEFAULT 1,
+  last_sent_date TEXT,
+  created_by     TEXT    NOT NULL,
+  created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_due ON events (active, post_time);
