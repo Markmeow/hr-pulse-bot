@@ -10,14 +10,20 @@ const {
 const crypto = require('node:crypto');
 const db = require('../database/db');
 
-const findByDiscord = db.prepare('SELECT * FROM users WHERE discord_id = ? AND guild_id = ?');
+const findByDiscord  = db.prepare('SELECT * FROM users WHERE discord_id = ? AND guild_id = ?');
 const findByUsername = db.prepare('SELECT * FROM users WHERE username = ? AND guild_id = ?');
-const insertUser = db.prepare(
+const insertUser     = db.prepare(
   'INSERT INTO users (discord_id, username, password_hash, guild_id) VALUES (?, ?, ?, ?)'
 );
 const updateLastLogin = db.prepare("UPDATE users SET last_login = datetime('now') WHERE id = ?");
-const updatePassword = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?');
-const updateApiKey = db.prepare('UPDATE users SET api_key = ? WHERE id = ?');
+const updatePassword  = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?');
+
+const checkKeySystemActive = db.prepare('SELECT COUNT(*) as count FROM invite_keys WHERE guild_id = ?');
+const findActiveKey        = db.prepare("SELECT * FROM invite_keys WHERE key_value = ? AND guild_id = ? AND status = 'active'");
+const getReservedKey       = db.prepare("SELECT * FROM invite_keys WHERE reserved_by = ? AND guild_id = ? AND status = 'reserved'");
+const releaseReservation   = db.prepare("UPDATE invite_keys SET reserved_by = NULL, status = 'active' WHERE reserved_by = ? AND guild_id = ? AND status = 'reserved'");
+const reserveKey           = db.prepare("UPDATE invite_keys SET status = 'reserved', reserved_by = ? WHERE key_value = ? AND guild_id = ?");
+const markKeyUsed          = db.prepare("UPDATE invite_keys SET status = 'used', used_by = ?, used_at = datetime('now') WHERE reserved_by = ? AND guild_id = ? AND status = 'reserved'");
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -119,9 +125,9 @@ async function handleKeyButton(interaction, roleId) {
     new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId('api_key')
-        .setLabel('API Key')
+        .setLabel('Invite Key')
         .setStyle(TextInputStyle.Short)
-        .setPlaceholder('กรอก API Key ของคุณที่นี่')
+        .setPlaceholder('ตัวอย่าง: ABCD-EFGH-1234')
         .setRequired(true)
     )
   );
@@ -131,13 +137,25 @@ async function handleKeyButton(interaction, roleId) {
 async function handleRegisterModal(interaction, roleId) {
   const username = interaction.fields.getTextInputValue('username').trim();
   const password = interaction.fields.getTextInputValue('password');
-  const guildId = interaction.guildId;
+  const guildId  = interaction.guildId;
 
   if (findByDiscord.get(interaction.user.id, guildId)) {
     return interaction.reply(eph('❌ Discord ของคุณถูกลงทะเบียนไปแล้ว กรุณาใช้ปุ่ม **เข้าสู่ระบบ** แทน'));
   }
   if (findByUsername.get(username, guildId)) {
     return interaction.reply(eph(`❌ ชื่อผู้ใช้ **${username}** ถูกใช้งานแล้ว กรุณาเลือกชื่ออื่น`));
+  }
+
+  const { count } = checkKeySystemActive.get(guildId);
+  if (count > 0) {
+    const reservedKey = getReservedKey.get(interaction.user.id, guildId);
+    if (!reservedKey) {
+      return interaction.reply(eph(
+        '❌ กรุณากรอก **Key พิเศษ** ก่อนสมัครสมาชิก\n' +
+        '> กดปุ่ม 🗝️ **กรอกคีย์พิเศษ** แล้วใส่ key ที่ได้รับจาก Admin'
+      ));
+    }
+    markKeyUsed.run(interaction.user.id, interaction.user.id, guildId);
   }
 
   insertUser.run(interaction.user.id, username, hashPassword(password), guildId);
@@ -163,7 +181,7 @@ async function handleLoginModal(interaction, roleId) {
 }
 
 async function handleResetModal(interaction, roleId) {
-  const username = interaction.fields.getTextInputValue('username').trim();
+  const username    = interaction.fields.getTextInputValue('username').trim();
   const newPassword = interaction.fields.getTextInputValue('new_password');
 
   const user = findByUsername.get(username, interaction.guildId);
@@ -176,15 +194,26 @@ async function handleResetModal(interaction, roleId) {
 }
 
 async function handleKeyModal(interaction, roleId) {
-  const apiKey = interaction.fields.getTextInputValue('api_key').trim();
+  const rawKey  = interaction.fields.getTextInputValue('api_key').trim().toUpperCase();
+  const guildId = interaction.guildId;
 
-  const user = findByDiscord.get(interaction.user.id, interaction.guildId);
-  if (!user) {
-    return interaction.reply(eph('❌ คุณยังไม่ได้สมัครสมาชิก กรุณากดปุ่ม **สมัครสมาชิก** ก่อน'));
+  const { count } = checkKeySystemActive.get(guildId);
+  if (count === 0) {
+    return interaction.reply(eph('ℹ️ Server นี้ยังไม่ได้เปิดใช้งานระบบ Key (Admin ยังไม่ได้สร้าง Key)'));
   }
 
-  updateApiKey.run(apiKey, user.id);
-  await interaction.reply(eph('✅ บันทึก API Key สำเร็จแล้ว'));
+  const key = findActiveKey.get(rawKey, guildId);
+  if (!key) {
+    return interaction.reply(eph('❌ Key ไม่ถูกต้อง หรือถูกใช้งานไปแล้ว\nติดต่อ Admin เพื่อขอ Key ใหม่'));
+  }
+
+  releaseReservation.run(interaction.user.id, guildId);
+  reserveKey.run(interaction.user.id, rawKey, guildId);
+
+  await interaction.reply(eph(
+    '✅ Key ถูกต้อง! กด 📝 **สมัครสมาชิก** เพื่อดำเนินการต่อได้เลยครับ\n' +
+    `> Key ของคุณ: \`${rawKey}\``
+  ));
 }
 
 async function assignRole(interaction, roleId) {
@@ -198,24 +227,24 @@ async function assignRole(interaction, roleId) {
 
 async function handleButton(interaction) {
   const colonIdx = interaction.customId.indexOf(':');
-  const type = interaction.customId.slice(0, colonIdx);
-  const roleId = interaction.customId.slice(colonIdx + 1);
+  const type     = interaction.customId.slice(0, colonIdx);
+  const roleId   = interaction.customId.slice(colonIdx + 1);
 
   if (type === 'auth_register') return handleRegisterButton(interaction, roleId);
-  if (type === 'auth_login') return handleLoginButton(interaction, roleId);
-  if (type === 'auth_reset') return handleResetButton(interaction, roleId);
-  if (type === 'auth_key') return handleKeyButton(interaction, roleId);
+  if (type === 'auth_login')    return handleLoginButton(interaction, roleId);
+  if (type === 'auth_reset')    return handleResetButton(interaction, roleId);
+  if (type === 'auth_key')      return handleKeyButton(interaction, roleId);
 }
 
 async function handleModal(interaction) {
   const colonIdx = interaction.customId.indexOf(':');
-  const type = interaction.customId.slice(0, colonIdx);
-  const roleId = interaction.customId.slice(colonIdx + 1);
+  const type     = interaction.customId.slice(0, colonIdx);
+  const roleId   = interaction.customId.slice(colonIdx + 1);
 
   if (type === 'auth_register_modal') return handleRegisterModal(interaction, roleId);
-  if (type === 'auth_login_modal') return handleLoginModal(interaction, roleId);
-  if (type === 'auth_reset_modal') return handleResetModal(interaction, roleId);
-  if (type === 'auth_key_modal') return handleKeyModal(interaction, roleId);
+  if (type === 'auth_login_modal')    return handleLoginModal(interaction, roleId);
+  if (type === 'auth_reset_modal')    return handleResetModal(interaction, roleId);
+  if (type === 'auth_key_modal')      return handleKeyModal(interaction, roleId);
 }
 
 module.exports = { handleButton, handleModal };

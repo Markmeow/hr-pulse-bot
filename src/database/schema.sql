@@ -84,3 +84,18 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_events_due ON events (active, post_time);
+
+CREATE TABLE IF NOT EXISTS invite_keys (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  guild_id    TEXT NOT NULL,
+  key_value   TEXT NOT NULL,
+  created_by  TEXT NOT NULL,
+  reserved_by TEXT,
+  used_by     TEXT,
+  status      TEXT NOT NULL DEFAULT 'active',
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  used_at     TEXT,
+  UNIQUE (key_value, guild_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_invite_keys ON invite_keys (guild_id, status);
