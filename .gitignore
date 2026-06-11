@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Environment secrets
+.env
+
+# SQLite database files
+data/
+*.db
+*.db-journal
+*.sqlite
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
