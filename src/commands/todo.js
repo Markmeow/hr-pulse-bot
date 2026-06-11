@@ -3,7 +3,6 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const db = require('../database/db');
 
-// Prepared statements
 const insertTodo = db.prepare(
   'INSERT INTO todos (user_id, guild_id, task) VALUES (?, ?, ?)'
 );
@@ -56,7 +55,6 @@ module.exports = {
     const avatar = interaction.user.displayAvatarURL();
     const name = interaction.user.displayName;
 
-    // ---- /todo add ----
     if (sub === 'add') {
       const task = interaction.options.getString('task', true);
       const result = insertTodo.run(userId, guildId, task);
@@ -75,7 +73,6 @@ module.exports = {
       return;
     }
 
-    // ---- /todo list ----
     if (sub === 'list') {
       const todos = listOpenTodos.all(userId, guildId);
 
@@ -111,7 +108,6 @@ module.exports = {
       return;
     }
 
-    // ---- /todo done ----
     if (sub === 'done') {
       const id = interaction.options.getInteger('id', true);
       const todo = getTodoById.get(id, userId, guildId);

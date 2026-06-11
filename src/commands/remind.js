@@ -42,7 +42,6 @@ module.exports = {
     const userId = interaction.user.id;
     const guildId = interaction.guildId;
 
-    // ---- /remind add ----
     if (sub === 'add') {
       const when = interaction.options.getString('when', true);
       const message = interaction.options.getString('message', true);
@@ -74,7 +73,6 @@ module.exports = {
       return;
     }
 
-    // ---- /remind list ----
     if (sub === 'list') {
       const reminders = listPendingReminders.all(userId, guildId);
 

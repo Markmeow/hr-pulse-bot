@@ -18,7 +18,6 @@ const insertStandup = db.prepare(
 );
 
 module.exports = {
-  // Exposed so interactionCreate can route modal submits back here.
   MODAL_ID,
 
   data: new SlashCommandBuilder()
@@ -60,19 +59,13 @@ module.exports = {
     await interaction.showModal(modal);
   },
 
-  /**
-   * Handle the submitted standup modal.
-   * @param {import('discord.js').ModalSubmitInteraction} interaction
-   */
   async handleModal(interaction) {
     const yesterday = interaction.fields.getTextInputValue('yesterday');
     const today = interaction.fields.getTextInputValue('today');
     const blockers = interaction.fields.getTextInputValue('blockers') || 'ไม่มี';
 
-    // Save to the database
     insertStandup.run(interaction.user.id, interaction.guildId, yesterday, today, blockers);
 
-    // Build the summary embed
     const embed = new EmbedBuilder()
       .setTitle('🗒️ Daily Standup')
       .setAuthor({
@@ -87,15 +80,11 @@ module.exports = {
       .setColor(0x57f287)
       .setTimestamp();
 
-    // Decide where to post: configured channel, else the channel the command ran in.
     const targetChannelId = process.env.STANDUP_CHANNEL_ID || interaction.channelId;
     let posted = false;
 
     try {
-      const channel = await interaction.client.channels
-        .fetch(targetChannelId)
-        .catch(() => null);
-
+      const channel = await interaction.client.channels.fetch(targetChannelId).catch(() => null);
       if (channel && channel.isTextBased()) {
         await channel.send({ embeds: [embed] });
         posted = true;

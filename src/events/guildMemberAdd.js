@@ -7,7 +7,6 @@ module.exports = {
   async execute(member) {
     const authChannelId = process.env.AUTH_CHANNEL_ID;
 
-    // DM คนใหม่แจ้งให้ไปยืนยันตัวตน
     const embed = new EmbedBuilder()
       .setColor(0x5865f2)
       .setTitle('🌸 ยินดีต้อนรับสู่ Server!')
@@ -32,7 +31,6 @@ module.exports = {
     try {
       await member.send({ embeds: [embed] });
     } catch {
-      // user ปิด DM — ส่งใน auth channel แทน
       if (authChannelId) {
         try {
           const channel = await member.guild.channels.fetch(authChannelId).catch(() => null);

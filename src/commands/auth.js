@@ -86,7 +86,6 @@ module.exports = {
     const sub = interaction.options.getSubcommand();
     const authChannelId = process.env.AUTH_CHANNEL_ID;
 
-    // Guard — setup และ create ต้องรันใน AUTH_CHANNEL_ID เท่านั้น
     if (authChannelId && interaction.channelId !== authChannelId) {
       return interaction.reply({
         embeds: [
@@ -99,7 +98,6 @@ module.exports = {
       });
     }
 
-    // ---- /auth setup ----
     if (sub === 'setup') {
       const role = interaction.options.getRole('role', true);
       const imageUrl = interaction.options.getString('image_url');
@@ -112,7 +110,6 @@ module.exports = {
       return;
     }
 
-    // ---- /auth create ----
     if (sub === 'create') {
       const role = interaction.options.getRole('role', true);
       const channelName = interaction.options.getString('channel_name') || 'ยืนยันตัวตน';
@@ -120,13 +117,11 @@ module.exports = {
 
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-      // สร้าง channel พร้อม permission
       const channel = await interaction.guild.channels.create({
         name: channelName,
         type: ChannelType.GuildText,
         permissionOverwrites: [
           {
-            // @everyone — มองเห็นได้ แต่ส่งข้อความไม่ได้
             id: interaction.guild.roles.everyone.id,
             allow: [PermissionFlagsBits.ViewChannel],
             deny: [
@@ -136,20 +131,17 @@ module.exports = {
             ],
           },
           {
-            // Verified role — มองเห็นได้ แต่ไม่ต้องส่งข้อความในช่องนี้
             id: role.id,
             allow: [PermissionFlagsBits.ViewChannel],
             deny: [PermissionFlagsBits.SendMessages],
           },
           {
-            // Bot — ส่งข้อความได้
             id: interaction.client.user.id,
             allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
           },
         ],
       });
 
-      // ส่ง Auth Panel เข้า channel ใหม่
       await channel.send({
         embeds: [buildAuthEmbed(imageUrl)],
         components: [buildAuthRow(role.id)],

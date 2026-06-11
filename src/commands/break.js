@@ -3,7 +3,6 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const db = require('../database/db');
 
-// ---- Prepared statements ----
 const upsertBreak = db.prepare(`
   INSERT INTO breaks (user_id, guild_id, channel_id, break_time, duration_ms, scheduled_at, date)
   VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -26,8 +25,6 @@ const setReturned = db.prepare(
 const getAllBreaksToday = db.prepare(
   'SELECT * FROM breaks WHERE guild_id = ? AND date = ? ORDER BY scheduled_at ASC'
 );
-
-// ---- Helpers ----
 
 function parseBreakTime(timeStr) {
   const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})$/);
@@ -82,8 +79,6 @@ function durationText(ms) {
   return m > 0 ? `${h} ชม. ${m} นาที` : `${h} ชั่วโมง`;
 }
 
-// ---- Command ----
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('break')
@@ -119,7 +114,6 @@ module.exports = {
     const avatar = interaction.user.displayAvatarURL();
     const name = interaction.user.displayName;
 
-    // ---- /break set ----
     if (sub === 'set') {
       const timeStr = interaction.options.getString('time', true);
       const durStr = interaction.options.getString('duration');
@@ -169,7 +163,6 @@ module.exports = {
       return;
     }
 
-    // ---- /break status ----
     if (sub === 'status') {
       const today = new Date().toISOString().slice(0, 10);
       const r = getMyBreak.get(userId, guildId, today);
@@ -226,7 +219,6 @@ module.exports = {
       return;
     }
 
-    // ---- /break return ----
     if (sub === 'return') {
       const today = new Date().toISOString().slice(0, 10);
       const r = getMyBreak.get(userId, guildId, today);
@@ -289,7 +281,6 @@ module.exports = {
       return;
     }
 
-    // ---- /break dashboard ----
     if (sub === 'dashboard') {
       const today = new Date().toISOString().slice(0, 10);
       const records = getAllBreaksToday.all(guildId, today);

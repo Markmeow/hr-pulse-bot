@@ -2,7 +2,7 @@
 
 const db = require('../database/db');
 
-const CHECK_INTERVAL = 60 * 1000; // ตรวจทุก 1 นาที
+const CHECK_INTERVAL = 60 * 1000;
 
 const getDueBreaks = db.prepare(
   "SELECT * FROM breaks WHERE status = 'scheduled' AND scheduled_at <= ?"
@@ -35,7 +35,6 @@ function endTimeStr(startMs, durationMs) {
 async function processDueBreaks(client) {
   const now = Date.now();
 
-  // 1. เริ่มพัก — ถึงเวลา scheduled_at แล้ว
   let due = [];
   try { due = getDueBreaks.all(now); } catch (err) {
     console.error('[breaks] Failed to read due breaks:', err);
@@ -60,7 +59,6 @@ async function processDueBreaks(client) {
     }
   }
 
-  // 2. เตือน 5 นาทีก่อนหมดเวลา
   let ending = [];
   try { ending = getEndingBreaks.all(now, now); } catch (err) {
     console.error('[breaks] Failed to read ending breaks:', err);
@@ -81,7 +79,6 @@ async function processDueBreaks(client) {
     }
   }
 
-  // 3. หมดเวลา — auto-end break
   let expired = [];
   try { expired = getExpiredBreaks.all(now); } catch (err) {
     console.error('[breaks] Failed to read expired breaks:', err);

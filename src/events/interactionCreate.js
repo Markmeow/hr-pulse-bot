@@ -7,13 +7,11 @@ const db = require('../database/db');
 
 const checkRegistered = db.prepare('SELECT id FROM users WHERE discord_id = ? AND guild_id = ?');
 
-// คำสั่งที่ไม่ต้องตรวจสอบการลงทะเบียน
 const OPEN_COMMANDS = new Set(['auth', 'help']);
 
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
-    // ---- Slash commands ----
     if (interaction.isChatInputCommand()) {
       const command = interaction.client.commands.get(interaction.commandName);
 
@@ -22,7 +20,6 @@ module.exports = {
         return;
       }
 
-      // Guard — ตรวจสอบว่าลงทะเบียนแล้วหรือยัง (ยกเว้น open commands)
       if (!OPEN_COMMANDS.has(interaction.commandName)) {
         const registered = checkRegistered.get(interaction.user.id, interaction.guildId);
         if (!registered) {
@@ -51,7 +48,6 @@ module.exports = {
       return;
     }
 
-    // ---- Button interactions ----
     if (interaction.isButton()) {
       if (interaction.customId.startsWith('auth_')) {
         try {
@@ -64,7 +60,6 @@ module.exports = {
       return;
     }
 
-    // ---- Modal submissions ----
     if (interaction.isModalSubmit()) {
       try {
         if (interaction.customId === standup.MODAL_ID) {
@@ -80,10 +75,6 @@ module.exports = {
   },
 };
 
-/**
- * Reply with a generic error message, handling both replied and un-replied states.
- * @param {import('discord.js').RepliableInteraction} interaction
- */
 async function safeErrorReply(interaction) {
   const payload = {
     content: '⚠️ Something went wrong while handling that. Please try again.',

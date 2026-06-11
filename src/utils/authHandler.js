@@ -10,7 +10,6 @@ const {
 const crypto = require('node:crypto');
 const db = require('../database/db');
 
-// ---- Prepared statements ----
 const findByDiscord = db.prepare('SELECT * FROM users WHERE discord_id = ? AND guild_id = ?');
 const findByUsername = db.prepare('SELECT * FROM users WHERE username = ? AND guild_id = ?');
 const insertUser = db.prepare(
@@ -20,7 +19,6 @@ const updateLastLogin = db.prepare("UPDATE users SET last_login = datetime('now'
 const updatePassword = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?');
 const updateApiKey = db.prepare('UPDATE users SET api_key = ? WHERE id = ?');
 
-// ---- Crypto helpers ----
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
@@ -36,8 +34,6 @@ function verifyPassword(password, stored) {
 function eph(content) {
   return { content, flags: MessageFlags.Ephemeral };
 }
-
-// ---- Button → show modal ----
 
 async function handleRegisterButton(interaction, roleId) {
   const modal = new ModalBuilder()
@@ -132,8 +128,6 @@ async function handleKeyButton(interaction, roleId) {
   await interaction.showModal(modal);
 }
 
-// ---- Modal submit handlers ----
-
 async function handleRegisterModal(interaction, roleId) {
   const username = interaction.fields.getTextInputValue('username').trim();
   const password = interaction.fields.getTextInputValue('password');
@@ -193,7 +187,6 @@ async function handleKeyModal(interaction, roleId) {
   await interaction.reply(eph('✅ บันทึก API Key สำเร็จแล้ว'));
 }
 
-// ---- Role helper ----
 async function assignRole(interaction, roleId) {
   try {
     const role = await interaction.guild.roles.fetch(roleId);
@@ -202,8 +195,6 @@ async function assignRole(interaction, roleId) {
     console.warn('[auth] Could not assign role:', err.message);
   }
 }
-
-// ---- Public dispatchers ----
 
 async function handleButton(interaction) {
   const colonIdx = interaction.customId.indexOf(':');

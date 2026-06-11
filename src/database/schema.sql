@@ -1,19 +1,13 @@
--- ============================================================
---  Internship Assistant Bot - Database Schema
--- ============================================================
-
--- Todo tasks created with /todo add
 CREATE TABLE IF NOT EXISTS todos (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id      TEXT    NOT NULL,
   guild_id     TEXT    NOT NULL,
   task         TEXT    NOT NULL,
-  done         INTEGER NOT NULL DEFAULT 0,        -- 0 = open, 1 = completed
+  done         INTEGER NOT NULL DEFAULT 0,
   created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
   completed_at TEXT
 );
 
--- Standup answers collected with /standup
 CREATE TABLE IF NOT EXISTS standups (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id    TEXT NOT NULL,
@@ -24,19 +18,17 @@ CREATE TABLE IF NOT EXISTS standups (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- Scheduled reminders created with /remind add
 CREATE TABLE IF NOT EXISTS reminders (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id    TEXT    NOT NULL,
   guild_id   TEXT    NOT NULL,
   channel_id TEXT    NOT NULL,
   message    TEXT    NOT NULL,
-  remind_at  INTEGER NOT NULL,                    -- unix timestamp in milliseconds
-  sent       INTEGER NOT NULL DEFAULT 0,          -- 0 = pending, 1 = already sent
+  remind_at  INTEGER NOT NULL,
+  sent       INTEGER NOT NULL DEFAULT 0,
   created_at TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
--- Registered users (auth system)
 CREATE TABLE IF NOT EXISTS users (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   discord_id    TEXT    NOT NULL,
@@ -50,24 +42,22 @@ CREATE TABLE IF NOT EXISTS users (
   UNIQUE (username, guild_id)
 );
 
--- Daily break records
 CREATE TABLE IF NOT EXISTS breaks (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id      TEXT    NOT NULL,
   guild_id     TEXT    NOT NULL,
   channel_id   TEXT    NOT NULL,
-  break_time   TEXT    NOT NULL,             -- "12:00" display string
-  duration_ms  INTEGER DEFAULT 3600000,      -- break duration in ms (default 1h)
-  scheduled_at INTEGER NOT NULL,             -- unix ms when break should start
-  started_at   INTEGER,                      -- unix ms when bot notified (on_break)
-  returned_at  INTEGER,                      -- unix ms when user ran /break return
-  end_warned   INTEGER DEFAULT 0,            -- 1 = 5-min warning already sent
-  status       TEXT    NOT NULL DEFAULT 'scheduled', -- scheduled / on_break / returned
-  date         TEXT    NOT NULL,             -- "YYYY-MM-DD" for uniqueness per day
+  break_time   TEXT    NOT NULL,
+  duration_ms  INTEGER DEFAULT 3600000,
+  scheduled_at INTEGER NOT NULL,
+  started_at   INTEGER,
+  returned_at  INTEGER,
+  end_warned   INTEGER DEFAULT 0,
+  status       TEXT    NOT NULL DEFAULT 'scheduled',
+  date         TEXT    NOT NULL,
   UNIQUE (user_id, guild_id, date)
 );
 
--- Helpful indexes
 CREATE INDEX IF NOT EXISTS idx_todos_user      ON todos (user_id, guild_id, done);
 CREATE INDEX IF NOT EXISTS idx_reminders_due   ON reminders (sent, remind_at);
 CREATE INDEX IF NOT EXISTS idx_standups_user   ON standups (user_id, guild_id);
