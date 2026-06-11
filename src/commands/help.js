@@ -9,48 +9,72 @@ module.exports = {
 
   async execute(interaction) {
     const embed = new EmbedBuilder()
-      .setTitle('🤖 Internship Assistant Bot — คำสั่งทั้งหมด')
-      .setDescription('นี่คือสิ่งที่ฉันช่วยคุณได้:')
-      .setColor(0x5865f2)
+      .setColor(0xbd93f9)
+      .setAuthor({
+        name: 'HR Pulse Bot — คู่มือการใช้งาน',
+        iconURL: interaction.client.user.displayAvatarURL(),
+      })
+      .setDescription('🌸 รายการคำสั่งทั้งหมดที่ใช้ได้ในระบบ')
       .addFields(
         {
           name: '📋 รายการงาน',
-          value:
-            '`/todo add task:<ข้อความ>` — เพิ่มงานใหม่\n' +
-            '`/todo list` — ดูรายการงานที่ค้างอยู่\n' +
-            '`/todo done id:<หมายเลข>` — ทำเครื่องหมายงานว่าเสร็จแล้ว',
+          value: [
+            '✦ `/todo add task:` — เพิ่มงานใหม่',
+            '✦ `/todo list` — ดูงานที่ค้างอยู่',
+            '✦ `/todo done id:` — ทำเครื่องหมายเสร็จแล้ว',
+          ].join('\n'),
+          inline: false,
         },
         {
           name: '🗒️ Daily Standup',
-          value:
-            '`/standup` — เปิดฟอร์มบันทึกว่าเมื่อวานทำอะไร วันนี้จะทำอะไร และมีอุปสรรคอะไรบ้าง สรุปจะถูกส่งไปยัง channel Standup ของทีม',
+          value: '✦ `/standup` — บันทึกว่าเมื่อวานทำอะไร วันนี้จะทำอะไร มีอุปสรรคไหม',
+          inline: false,
+        },
+        {
+          name: '📊 รายงานประจำวัน',
+          value: '✦ `/dailyreport` — ดูสถานะการส่ง standup ของทุกคน แยกตาม Role',
+          inline: false,
         },
         {
           name: '⏰ การแจ้งเตือน',
-          value:
-            '`/remind add when:<เวลา> message:<ข้อความ>` — ตั้งการแจ้งเตือน\n' +
-            '`/remind list` — ดูรายการแจ้งเตือนที่รอดำเนินการ\n' +
-            '_ตัวอย่างเวลา: `30m`, `2h`, `1d`, `1h30m` หรือ `2025-06-20 14:30`_',
+          value: [
+            '✦ `/remind add when: message:` — ตั้งแจ้งเตือน',
+            '✦ `/remind list` — ดูรายการแจ้งเตือนที่รอ',
+            '> ตัวอย่าง when: `30m` `2h` `1d` `1h30m` `2025-06-20 14:30`',
+          ].join('\n'),
+          inline: false,
         },
         {
           name: '🌸 การพักประจำวัน',
-          value:
-            '`/break set time:<HH:MM>` — ตั้งเวลาพัก บอทจะแจ้งเตือนเมื่อถึงเวลา\n' +
-            '`/break status` — ดูสถานะการพักของตัวเอง\n' +
-            '`/break return` — แจ้งว่าพักเสร็จแล้วและกลับมาทำงานต่อ\n' +
-            '`/break dashboard` — ดูสถานะการพักของทุกคนในวันนี้',
+          value: [
+            '✦ `/break set time: duration: activity:` — ตั้งเวลาพัก + เลือกกิจกรรม',
+            '✦ `/break status` — ดูสถานะการพักของตัวเอง',
+            '✦ `/break return` — แจ้งกลับมาทำงานต่อ',
+            '✦ `/break dashboard` — ดูสถานะพักของทุกคนวันนี้',
+          ].join('\n'),
+          inline: false,
         },
         {
-          name: '🔒 ระบบยืนยันตัวตน',
-          value:
-            '`/auth setup role:<role>` — ส่ง Auth Panel ไปยัง channel นี้ (Admin เท่านั้น)',
+          name: '📣 ประกาศอีเว้น  *(Admin)*',
+          value: [
+            '✦ `/event add` — สร้างประกาศที่โพสต์อัตโนมัติทุกวัน',
+            '✦ `/event list` — ดูรายการประกาศทั้งหมด',
+            '✦ `/event edit id:` — แก้ไขประกาศ',
+            '✦ `/event delete id:` — ลบประกาศ',
+          ].join('\n'),
+          inline: false,
         },
         {
-          name: 'ℹ️ อื่นๆ',
-          value: '`/help` — แสดงข้อความนี้',
-        }
+          name: '🔒 ระบบยืนยันตัวตน  *(Admin)*',
+          value: [
+            '✦ `/auth setup role:` — ส่ง Auth Panel ไปยัง channel นี้',
+            '✦ `/auth create role:` — สร้าง channel ยืนยันตัวตนใหม่พร้อม permission',
+          ].join('\n'),
+          inline: false,
+        },
       )
-      .setFooter({ text: 'เคล็ดลับ: คำตอบส่วนใหญ่จะมองเห็นได้เฉพาะคุณเท่านั้น' });
+      .setFooter({ text: '✦ คำตอบส่วนใหญ่มองเห็นได้เฉพาะคุณเท่านั้น  •  /help' })
+      .setTimestamp();
 
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   },
