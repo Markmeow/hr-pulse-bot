@@ -9,6 +9,15 @@ const checkRegistered = db.prepare('SELECT id FROM users WHERE discord_id = ? AN
 
 const OPEN_COMMANDS = new Set(['auth', 'help', 'event']);
 
+const CHANNEL_GUARDS = {
+  auth:        'AUTH_CHANNEL_ID',
+  standup:     'STANDUP_CHANNEL_ID',
+  dailyreport: 'STANDUP_CHANNEL_ID',
+  break:       'BREAK_CHANNEL_ID',
+  todo:        'GENERAL_CHANNEL_ID',
+  remind:      'GENERAL_CHANNEL_ID',
+};
+
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
@@ -37,6 +46,20 @@ module.exports = {
             flags: MessageFlags.Ephemeral,
           });
         }
+      }
+
+      const envKey = CHANNEL_GUARDS[interaction.commandName];
+      const requiredChannelId = envKey ? process.env[envKey] : null;
+      if (requiredChannelId && interaction.channelId !== requiredChannelId) {
+        return interaction.reply({
+          embeds: [
+            new EmbedBuilder()
+              .setColor(0xff5555)
+              .setTitle('✦ ใช้คำสั่งนี้ในช่องนี้ไม่ได้')
+              .setDescription(`คำสั่ง \`/${interaction.commandName}\` ใช้ได้เฉพาะใน <#${requiredChannelId}> เท่านั้น`),
+          ],
+          flags: MessageFlags.Ephemeral,
+        });
       }
 
       try {
